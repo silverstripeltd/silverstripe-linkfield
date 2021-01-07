@@ -1,0 +1,6 @@
+---
+name: dataobject-extension
+---
+SilverStripe\ORM\DataObject:
+  extensions:
+    - SilverStripe\LinkField\Extensions\DataObjectExtension
