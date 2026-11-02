@@ -10,6 +10,7 @@ use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\Session;
 use SilverStripe\LinkField\Controllers\LinkFieldController;
 use SilverStripe\LinkField\Tests\Models\LinkTest\LinkOwner;
+use SilverStripe\LinkField\Tests\Models\LinkTest\ValidatedOwner;
 use SilverStripe\Versioned\Versioned;
 use SilverStripe\LinkField\Models\Link;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -21,6 +22,7 @@ class LinkFieldControllerTest extends FunctionalTest
 
     protected static $extra_dataobjects = [
         TestPhoneLink::class,
+        ValidatedOwner::class,
         LinkOwner::class,
     ];
 
@@ -306,6 +308,32 @@ class LinkFieldControllerTest extends FunctionalTest
                 }
             }
         }
+    }
+
+    public function testLinkFormPostUnsavedOwnerDoesNotWriteOwner(): void
+    {
+        $ownerClass = urlencode(ValidatedOwner::class);
+        $ownerCount = ValidatedOwner::get()->count();
+        $data = [
+            'LinkText' => 'New link',
+            'OwnerID' => 0,
+            'OwnerClass' => ValidatedOwner::class,
+            'OwnerRelation' => 'Link',
+        ];
+        $url = "/admin/linkfield/linkForm/0?typeKey=testphone&ownerID=0&ownerClass=$ownerClass"
+            . "&ownerRelation=Link";
+        $headers = array_merge($this->formSchemaHeader(), $this->csrfTokenheader());
+        $response = $this->post($url, $data, $headers);
+        $this->assertSame(200, $response->getStatusCode());
+        // Validation errors are returned in the schema with a 200 status
+        $formSchema = json_decode($response->getBody(), true);
+        $this->assertEmpty($formSchema['errors']);
+        $link = TestPhoneLink::get()->sort('ID', 'DESC')->first();
+        $this->assertNotNull($link);
+        $this->assertSame('New link', $link->LinkText);
+        $this->assertSame(0, $link->OwnerID);
+        $this->assertSame(ValidatedOwner::class, $link->OwnerClass);
+        $this->assertSame($ownerCount, ValidatedOwner::get()->count());
     }
 
     public static function provideLinkFormPost(): array

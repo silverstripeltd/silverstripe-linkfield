@@ -240,6 +240,7 @@ class LinkFieldController extends FormSchemaController
         $hasOne = $owner->hasOne();
         if ($operation === 'create'
             && array_key_exists($ownerRelation, $hasOne)
+            && $owner->isInDB()
             && $owner->$ownerRelationID !== $link->ID
             && $owner->canEdit()
         ) {
